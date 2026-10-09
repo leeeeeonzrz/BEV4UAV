@@ -1,0 +1,6 @@
+include LICENSE NOTICE README.md README_zh-CN.md
+include requirements/*.txt
+recursive-include configs *.py
+recursive-include projects *.py *.cpp *.cu *.h
+recursive-include tools *.py *.sh
+recursive-include docs *.md

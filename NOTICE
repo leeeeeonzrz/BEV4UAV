@@ -1,0 +1,25 @@
+BEV4UAV
+
+This source distribution includes a modified MMDetection3D codebase whose
+upstream version identifier is 1.4.0, and code from its BEVFusion project.
+
+MMDetection3D
+Copyright (c) OpenMMLab. All rights reserved.
+Copyright 2018-2019 Open-MMLab. All rights reserved.
+Upstream: https://github.com/open-mmlab/mmdetection3d
+
+The included BEVFusion source files identify adaptations from:
+https://github.com/mit-han-lab/bevfusion
+
+The original Apache License, Version 2.0 is retained in LICENSE. Existing
+file-level copyright, license, and attribution notices remain in force.
+This notice does not replace or relicense third-party notices in source files.
+
+This distribution contains project-specific modifications to data loading,
+evaluation, model components, and experiment configurations. The public release
+also reorganizes selected configurations, replaces private machine paths with
+local configuration inputs, adds a training entry point, and updates release
+documentation. It is not an unmodified upstream MMDetection3D distribution.
+
+Datasets, annotations, sensor calibration, weights, checkpoints, experiment
+artifacts, and paper files are not included in this source distribution.
