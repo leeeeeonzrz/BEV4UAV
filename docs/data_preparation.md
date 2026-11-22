@@ -54,6 +54,7 @@ python tools/create_data.py kitti \
   --extra-tag kitti \
   --kitti-classes Car,TrafficPole \
   --kitti-dim-order lwh \
+  --kitti-box-coordinate lidar \
   --skip-kitti-reduced \
   --kitti-gt-points-source raw
 ```
@@ -64,7 +65,7 @@ Keep `--root-path` and `--out-dir` identical for this entry point. The configura
 
 ## Known converter limitations
 
-The fork changes training box interpretation to LiDAR coordinates while retaining some upstream KITTI camera-coordinate helper logic. In particular, legacy point-count computation still performs a camera-to-LiDAR conversion, and auxiliary camera instance/center/depth generation assumes camera-coordinate labels. These derived fields are not a verified LiDAR-label conversion pipeline. Inspect and, where needed, adapt them before relying on per-box point counts, camera-instance annotations, or downstream filters that use those fields. Changing dimension order alone does not repair those coordinate assumptions.
+Use `--kitti-box-coordinate lidar` to count raw LiDAR points directly inside the supplied LiDAR boxes; the default `camera` retains the legacy KITTI camera-coordinate/FOV counting behavior. This switch affects point counting only and does not convert stored box coordinates. Auxiliary camera instance/center/depth generation still assumes camera-coordinate labels and is not a verified LiDAR-label conversion pipeline. Inspect and adapt those fields before relying on camera-instance annotations or downstream filters. Changing dimension order alone does not repair coordinate assumptions.
 
 The release preserves these behaviors rather than silently changing the original experiment's geometry. Verify converted `instances[*].bbox_3d`, class indices, box origins, and projections on representative frames before training. The custom KITTI evaluator also needs to be checked against your annotation and coordinate conventions; a successful conversion command does not establish evaluation correctness.
 
@@ -89,6 +90,6 @@ Generated metadata, point databases, calibration, split lists, sensor recordings
 - 这是自定义 KITTI 风格数据接口。三维框必须已在 LiDAR 坐标系，顺序为 `[x, y, z, l, w, h, yaw]`，位置为底面中心；不能直接使用标准 KITTI 相机坐标标签。
 - 默认类别和顺序为 `Car,TrafficPole`，点云每点为四个 `float32`：`x,y,z,intensity`。标定、图像、点云与标签必须对齐。
 - 转换需要 `train.txt`、`val.txt`、`test.txt`；没有独立测试集时保留空 `test.txt`。训练和验证帧均位于 `training/`。
-- 按上面的命令使用 `--kitti-dim-order lwh`、`--skip-kitti-reduced`、`--kitti-gt-points-source raw`，并保持输入根目录与输出目录相同。命令会生成或覆盖本地元信息和 GT 数据库。
-- 转换器中部分继承自上游的点数统计与相机实例/中心/深度辅助逻辑仍按相机坐标处理，不能视为经过验证的 LiDAR 标签转换。依赖这些字段前需要核对或适配。训练框、投影和评估器也应通过代表性样本检查。
+- 按上面的命令使用 `--kitti-dim-order lwh`、`--kitti-box-coordinate lidar`、`--skip-kitti-reduced`、`--kitti-gt-points-source raw`，并保持输入根目录与输出目录相同。命令会生成或覆盖本地元信息和 GT 数据库。
+- LiDAR 模式的点数按完整 LiDAR 点云和原始 LiDAR 框统计；相机实例/中心/深度辅助逻辑仍按相机坐标处理，不能视为经过验证的 LiDAR 标签转换。依赖这些字段前需要核对或适配。训练框、投影和评估器也应通过代表性样本检查。
 - CSF 由使用者离线执行；配置文件不会自动过滤点云。分别准备未过滤与已处理数据目录，并为各自数据生成元信息。
