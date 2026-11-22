@@ -22,7 +22,8 @@ def kitti_data_prep(root_path,
                     kitti_gt_pts_prefix='training/velodyne_reduced',
                     skip_kitti_reduced=False,
                     kitti_classes=None,
-                    kitti_dim_order='kitti_hwl'):
+                    kitti_dim_order='kitti_hwl',
+                    kitti_box_coordinate='camera'):
     """Prepare data related to Kitti dataset.
 
     Related data consists of '.pkl' files recording basic infos,
@@ -48,9 +49,13 @@ def kitti_data_prep(root_path,
         kitti_dim_order (str, optional): Dimension order of label file 3D box
             fields. Use 'kitti_hwl' for standard KITTI format or 'lwh' for
             custom LiDAR labels.
+        kitti_box_coordinate (str): Coordinate frame used for the per-box
+            point count. 'lidar' counts the complete raw LiDAR cloud; 'camera'
+            retains the legacy KITTI camera-FOV count.
     """
     kitti.create_kitti_info_file(
-        root_path, info_prefix, with_plane, dim_order=kitti_dim_order)
+        root_path, info_prefix, with_plane, dim_order=kitti_dim_order,
+        box_coordinate=kitti_box_coordinate)
     if not skip_kitti_reduced:
         kitti.create_reduced_point_cloud(root_path, info_prefix)
 
@@ -365,6 +370,13 @@ parser.add_argument(
     choices=['kitti_hwl', 'lwh', 'lhw', 'hwl'],
     help="Dimension order in label file columns 8:11. Use 'lwh' when your "
     "custom 3D boxes are in LiDAR (l,w,h).")
+parser.add_argument(
+    '--kitti-box-coordinate',
+    type=str,
+    default='camera',
+    choices=['camera', 'lidar'],
+    help='Coordinate frame of KITTI-style 3D labels for point counting. '
+    'Use lidar for BEV4UAV; this does not transform stored boxes.')
 args = parser.parse_args()
 
 if __name__ == '__main__':
@@ -401,7 +413,8 @@ if __name__ == '__main__':
                 kitti_gt_pts_prefix=kitti_gt_pts_prefix,
                 skip_kitti_reduced=args.skip_kitti_reduced,
                 kitti_classes=kitti_classes,
-                kitti_dim_order=args.kitti_dim_order)
+                kitti_dim_order=args.kitti_dim_order,
+                kitti_box_coordinate=args.kitti_box_coordinate)
     elif args.dataset == 'nuscenes' and args.version != 'v1.0-mini':
         if args.only_gt_database:
             create_groundtruth_database('NuScenesDataset', args.root_path,
