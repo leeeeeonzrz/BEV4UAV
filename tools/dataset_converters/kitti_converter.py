@@ -119,7 +119,11 @@ def _calculate_num_points_in_gt(data_path,
                                 infos,
                                 relative_path,
                                 remove_outside=True,
-                                num_features=4):
+                                num_features=4,
+                                box_coordinate='camera'):
+    if box_coordinate not in ('camera', 'lidar'):
+        raise ValueError("box_coordinate must be 'camera' or 'lidar'")
+
     for info in mmengine.track_iter_progress(infos):
         pc_info = info['point_cloud']
         image_info = info['image']
@@ -144,10 +148,11 @@ def _calculate_num_points_in_gt(data_path,
         dims = annos['dimensions'][:num_obj]
         loc = annos['location'][:num_obj]
         rots = annos['rotation_y'][:num_obj]
-        gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]],
-                                         axis=1)
-        gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
-            gt_boxes_camera, rect, Trv2c)
+        gt_boxes_lidar = np.concatenate(
+            [loc, dims, rots[..., np.newaxis]], axis=1)
+        if box_coordinate == 'camera':
+            gt_boxes_lidar = box_np_ops.box_camera_to_lidar(
+                gt_boxes_lidar, rect, Trv2c)
         indices = box_np_ops.points_in_rbbox(points_v[:, :3], gt_boxes_lidar)
         num_points_in_gt = indices.sum(0)
         num_ignored = len(annos['dimensions']) - num_obj
@@ -161,7 +166,8 @@ def create_kitti_info_file(data_path,
                            with_plane=False,
                            save_path=None,
                            relative_path=True,
-                           dim_order='kitti_hwl'):
+                           dim_order='kitti_hwl',
+                           box_coordinate='camera'):
     """Create info file of KITTI dataset.
 
     Given the raw data, generate its related info file in pkl format.
@@ -180,7 +186,14 @@ def create_kitti_info_file(data_path,
             label files. Use 'kitti_hwl' for standard KITTI labels or
             'lwh' for custom LiDAR labels.
             Default: 'kitti_hwl'.
+        box_coordinate (str): Coordinate frame of label 3D boxes for point
+            counting. Use 'lidar' for BEV4UAV's bottom-centered LiDAR boxes.
+            'camera' preserves the legacy KITTI counting behavior. This does
+            not convert boxes in the generated metadata.
+            Default: 'camera'.
     """
+    if box_coordinate not in ('camera', 'lidar'):
+        raise ValueError("box_coordinate must be 'camera' or 'lidar'")
     imageset_folder = Path(data_path) / 'ImageSets'
     train_img_ids = _read_imageset_file(str(imageset_folder / 'train.txt'))
     val_img_ids = _read_imageset_file(str(imageset_folder / 'val.txt'))
@@ -200,7 +213,10 @@ def create_kitti_info_file(data_path,
         image_ids=train_img_ids,
         relative_path=relative_path,
         dim_order=dim_order)
-    _calculate_num_points_in_gt(data_path, kitti_infos_train, relative_path)
+    _calculate_num_points_in_gt(
+        data_path, kitti_infos_train, relative_path,
+        remove_outside=(box_coordinate == 'camera'),
+        box_coordinate=box_coordinate)
     filename = save_path / f'{pkl_prefix}_infos_train.pkl'
     print(f'Kitti info train file is saved to {filename}')
     mmengine.dump(kitti_infos_train, filename)
@@ -213,7 +229,10 @@ def create_kitti_info_file(data_path,
         image_ids=val_img_ids,
         relative_path=relative_path,
         dim_order=dim_order)
-    _calculate_num_points_in_gt(data_path, kitti_infos_val, relative_path)
+    _calculate_num_points_in_gt(
+        data_path, kitti_infos_val, relative_path,
+        remove_outside=(box_coordinate == 'camera'),
+        box_coordinate=box_coordinate)
     filename = save_path / f'{pkl_prefix}_infos_val.pkl'
     print(f'Kitti info val file is saved to {filename}')
     mmengine.dump(kitti_infos_val, filename)
